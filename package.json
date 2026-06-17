@@ -1,0 +1,43 @@
+{
+  "name": "haorio-platform",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "sites/home",
+    "sites/lab"
+  ],
+  "scripts": {
+    "dev:blog": "npm --workspace sites/home run dev",
+    "build:blog": "npm --workspace sites/home run build",
+    "preview:blog": "npm --workspace sites/home run preview",
+    "draft:blog": "node sites/home/scripts/generate-ai-draft.mjs",
+    "fetch:mobile-draft": "node sites/home/scripts/fetch-mobile-draft.mjs",
+    "sync:blog": "node sites/home/scripts/sync-obsidian-posts.mjs",
+    "watch:blog": "node sites/home/scripts/watch-obsidian-publish.mjs",
+    "process:mobile-drafts": "node sites/home/scripts/process-mobile-drafts.mjs",
+    "watch:mobile-drafts": "node sites/home/scripts/process-mobile-drafts.mjs --watch",
+    "watch:mobile-drafts:start:wsl": "bash scripts/start-mobile-draft-watcher.sh",
+    "watch:mobile-drafts:stop:wsl": "bash scripts/stop-mobile-draft-watcher.sh",
+    "watch:mobile-drafts:status:wsl": "bash scripts/mobile-draft-watcher-status.sh",
+    "watch:mobile-drafts:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-mobile-draft-watcher.ps1",
+    "watch:mobile-drafts:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop-mobile-draft-watcher.ps1",
+    "watch:mobile-drafts:status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/mobile-draft-watcher-status.ps1",
+    "watch:blog:start:wsl": "bash scripts/start-blog-watcher.sh",
+    "watch:blog:stop:wsl": "bash scripts/stop-blog-watcher.sh",
+    "watch:blog:status:wsl": "bash scripts/blog-watcher-status.sh",
+    "watch:blog:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-blog-watcher.ps1",
+    "watch:blog:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop-blog-watcher.ps1",
+    "watch:blog:status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/blog-watcher-status.ps1",
+    "deploy:blog": "npm run build:blog && npx wrangler pages deploy sites/home/dist --project-name=haorio-blog --branch=main --commit-dirty=true",
+    "dev:study": "npm --workspace sites/lab run dev",
+    "build:study": "npm --workspace sites/lab run build",
+    "preview:study": "npm --workspace sites/lab run preview",
+    "deploy:study": "npm run build:study && npx wrangler pages deploy sites/lab/dist --project-name=haorio-study-apps --branch=main --commit-dirty=true",
+    "deploy:iban-ko": "npx wrangler pages deploy sites/iban-ko --project-name=haorio-iban-ko --branch=main --commit-dirty=true",
+    "deploy:langstudy": "npx wrangler pages deploy sites/langstudy --project-name=haorio-langstudy --branch=main --commit-dirty=true",
+    "deploy:jw-study": "npx wrangler pages deploy sites/jw-study --project-name=haorio-jw-study --branch=main --commit-dirty=true",
+    "deploy:itpe": "npx wrangler pages deploy sites/itpe --project-name=haorio-itpe --branch=main --commit-dirty=true",
+    "build": "npm run build:blog && npm run build:study",
+    "deploy": "npm run deploy:blog && npm run deploy:study"
+  }
+}

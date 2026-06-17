@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+/dist/
+/public/
+sites/**/dist/
+apps/**/dist/
+sites/notes/public/
+.astro/
+**/.astro/
+.quartz-cache/
+**/.quartz-cache/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Obsidian local/private state
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.trash/
+90 Private/
+Attachments/private/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+
+# Local agent/runtime state
+.agents/
+.claude/
+.local-cli-home/
+.tmp/
+.wrangler/
+D:/
+temp/
+
+# OMX runtime noise
+.omx/logs/
+.omx/state/
+.omx/metrics.json

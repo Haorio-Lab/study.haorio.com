@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Remote Input Debugger</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f8fb;
+        --panel: #ffffff;
+        --text: #172033;
+        --muted: #65728a;
+        --line: #d9e0ea;
+        --accent: #2563eb;
+        --danger: #b42318;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      main {
+        width: min(980px, 100%);
+        margin: 0 auto;
+        padding: 18px;
+      }
+
+      header {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 26px;
+        line-height: 1.15;
+      }
+
+      p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      button,
+      label {
+        min-height: 42px;
+      }
+
+      button {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--text);
+        padding: 9px 12px;
+        font: inherit;
+        font-weight: 700;
+      }
+
+      button.primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fff;
+      }
+
+      button.danger {
+        border-color: #fecaca;
+        color: var(--danger);
+      }
+
+      label.toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        padding: 9px 12px;
+        font-weight: 700;
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .metric {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fbfcfe;
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 22px;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .latest {
+        margin-bottom: 12px;
+      }
+
+      .latest pre,
+      .log-entry pre {
+        margin: 0;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      }
+
+      .log {
+        display: grid;
+        gap: 8px;
+        max-height: 62vh;
+        overflow: auto;
+        overscroll-behavior: contain;
+      }
+
+      .log-entry {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fff;
+      }
+
+      .log-entry h2 {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 0 0 6px;
+        font-size: 14px;
+      }
+
+      .event-name {
+        color: var(--accent);
+      }
+
+      .event-time {
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .empty {
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        color: var(--muted);
+        padding: 18px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Remote Input Debugger</h1>
+        <p>
+          Press the Bluetooth remote buttons here. This page logs the browser events that actually reach the web page.
+        </p>
+      </header>
+
+      <section class="panel" aria-label="debug controls">
+        <div class="controls">
+          <button id="copyButton" class="primary" type="button">Copy log</button>
+          <button id="clearButton" class="danger" type="button">Clear</button>
+          <button id="wakeButton" type="button">Keep screen awake</button>
+          <label class="toggle">
+            <input id="trapInput" type="checkbox" checked />
+            Trap navigation defaults
+          </label>
+          <label class="toggle">
+            <input id="pauseInput" type="checkbox" />
+            Pause logging
+          </label>
+        </div>
+
+        <div class="summary" aria-label="event counts">
+          <div class="metric">
+            <strong id="totalCount">0</strong>
+            <span>Total events</span>
+          </div>
+          <div class="metric">
+            <strong id="keyCount">0</strong>
+            <span>Keyboard events</span>
+          </div>
+          <div class="metric">
+            <strong id="wheelCount">0</strong>
+            <span>Wheel events</span>
+          </div>
+          <div class="metric">
+            <strong id="pointerCount">0</strong>
+            <span>Pointer/mouse/touch events</span>
+          </div>
+        </div>
+
+        <section class="latest" aria-label="latest event">
+          <p>Latest event</p>
+          <pre id="latestText">No events yet.</pre>
+        </section>
+
+        <section id="logList" class="log" aria-label="event log">
+          <div class="empty">Waiting for remote input...</div>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      (() => {
+        const MAX_LOGS = 200;
+        const NAV_KEYS = new Set([
+          "ArrowUp",
+          "ArrowDown",
+          "ArrowLeft",
+          "ArrowRight",
+          "PageUp",
+          "PageDown",
+          "Home",
+          "End",
+          " ",
+          "Spacebar",
+          "BrowserBack",
+          "BrowserForward",
+          "MediaTrackPrevious",
+          "MediaTrackNext",
+        ]);
+        const POINTER_EVENT_TYPES = new Set([
+          "pointerdown",
+          "pointerup",
+          "pointercancel",
+          "mousedown",
+          "mouseup",
+          "auxclick",
+          "click",
+          "contextmenu",
+          "touchstart",
+          "touchend",
+          "touchcancel",
+        ]);
+        const state = {
+          logs: [],
+          wakeLock: null,
+          counts: {
+            total: 0,
+            keyboard: 0,
+            wheel: 0,
+            pointer: 0,
+          },
+        };
+        const els = {
+          copyButton: document.querySelector("#copyButton"),
+          clearButton: document.querySelector("#clearButton"),
+          wakeButton: document.querySelector("#wakeButton"),
+          trapInput: document.querySelector("#trapInput"),
+          pauseInput: document.querySelector("#pauseInput"),
+          totalCount: document.querySelector("#totalCount"),
+          keyCount: document.querySelector("#keyCount"),
+          wheelCount: document.querySelector("#wheelCount"),
+          pointerCount: document.querySelector("#pointerCount"),
+          latestText: document.querySelector("#latestText"),
+          logList: document.querySelector("#logList"),
+        };
+
+        history.replaceState({ remoteDebug: true, index: 0 }, "", location.href);
+        history.pushState({ remoteDebug: true, index: 1 }, "", location.href);
+
+        function shouldTrap(event) {
+          if (!els.trapInput.checked) return false;
+          if (event.type === "wheel") return true;
+          if (event.type === "keydown" && NAV_KEYS.has(event.key)) return true;
+          if (["mousedown", "mouseup", "auxclick"].includes(event.type) && (event.button === 3 || event.button === 4)) {
+            return true;
+          }
+          return event.type === "contextmenu";
+        }
+
+        function trap(event) {
+          if (!shouldTrap(event)) return;
+          if (event.cancelable) event.preventDefault();
+          event.stopPropagation();
+        }
+
+        function classify(event) {
+          if (event.type.startsWith("key")) return "keyboard";
+          if (event.type === "wheel") return "wheel";
+          if (POINTER_EVENT_TYPES.has(event.type)) return "pointer";
+          return "total";
+        }
+
+        function describeTarget(target) {
+          if (!target) return "";
+          const tag = target.tagName ? target.tagName.toLowerCase() : "";
+          const id = target.id ? `#${target.id}` : "";
+          const classes = typeof target.className === "string" && target.className
+            ? `.${target.className.trim().replace(/\s+/g, ".")}`
+            : "";
+          return `${tag}${id}${classes}`;
+        }
+
+        function pickEvent(event) {
+          const touches = event.touches ? Array.from(event.touches).map((touch) => ({
+            identifier: touch.identifier,
+            clientX: Math.round(touch.clientX),
+            clientY: Math.round(touch.clientY),
+          })) : undefined;
+          const changedTouches = event.changedTouches ? Array.from(event.changedTouches).map((touch) => ({
+            identifier: touch.identifier,
+            clientX: Math.round(touch.clientX),
+            clientY: Math.round(touch.clientY),
+          })) : undefined;
+
+          return {
+            type: event.type,
+            key: event.key,
+            code: event.code,
+            keyCode: event.keyCode,
+            which: event.which,
+            button: event.button,
+            buttons: event.buttons,
+            pointerType: event.pointerType,
+            deltaX: event.deltaX,
+            deltaY: event.deltaY,
+            deltaZ: event.deltaZ,
+            deltaMode: event.deltaMode,
+            clientX: Number.isFinite(event.clientX) ? Math.round(event.clientX) : undefined,
+            clientY: Number.isFinite(event.clientY) ? Math.round(event.clientY) : undefined,
+            touches,
+            changedTouches,
+            repeat: event.repeat,
+            altKey: event.altKey,
+            ctrlKey: event.ctrlKey,
+            metaKey: event.metaKey,
+            shiftKey: event.shiftKey,
+            cancelable: event.cancelable,
+            defaultPrevented: event.defaultPrevented,
+            target: describeTarget(event.target),
+          };
+        }
+
+        function render() {
+          els.totalCount.textContent = state.counts.total;
+          els.keyCount.textContent = state.counts.keyboard;
+          els.wheelCount.textContent = state.counts.wheel;
+          els.pointerCount.textContent = state.counts.pointer;
+
+          const latest = state.logs[0];
+          els.latestText.textContent = latest ? JSON.stringify(latest.data, null, 2) : "No events yet.";
+
+          if (!state.logs.length) {
+            els.logList.innerHTML = '<div class="empty">Waiting for remote input...</div>';
+            return;
+          }
+
+          els.logList.innerHTML = state.logs.map((entry) => `
+            <article class="log-entry">
+              <h2>
+                <span class="event-name">${entry.data.type}</span>
+                <span class="event-time">${entry.time}</span>
+              </h2>
+              <pre>${escapeHtml(JSON.stringify(entry.data, null, 2))}</pre>
+            </article>
+          `).join("");
+        }
+
+        function escapeHtml(value) {
+          return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+        }
+
+        function logEvent(event) {
+          trap(event);
+          if (els.pauseInput.checked) return;
+
+          const group = classify(event);
+          state.counts.total += 1;
+          if (group !== "total") state.counts[group] += 1;
+
+          state.logs.unshift({
+            time: new Date().toLocaleTimeString(),
+            data: pickEvent(event),
+          });
+          state.logs = state.logs.slice(0, MAX_LOGS);
+          render();
+        }
+
+        function logCustom(type, data = {}) {
+          if (els.pauseInput.checked) return;
+          state.counts.total += 1;
+          state.logs.unshift({
+            time: new Date().toLocaleTimeString(),
+            data: { type, ...data },
+          });
+          state.logs = state.logs.slice(0, MAX_LOGS);
+          render();
+        }
+
+        function installListeners() {
+          const captureOptions = { capture: true, passive: false };
+          for (const type of ["keydown", "keyup", "beforeinput", "input"]) {
+            window.addEventListener(type, logEvent, true);
+          }
+          window.addEventListener("wheel", logEvent, captureOptions);
+          for (const type of POINTER_EVENT_TYPES) {
+            window.addEventListener(type, logEvent, captureOptions);
+          }
+          window.addEventListener("gamepadconnected", (event) => {
+            logCustom("gamepadconnected", {
+              id: event.gamepad.id,
+              index: event.gamepad.index,
+              buttons: event.gamepad.buttons.length,
+              axes: event.gamepad.axes.length,
+            });
+          });
+          window.addEventListener("gamepaddisconnected", (event) => {
+            logCustom("gamepaddisconnected", {
+              id: event.gamepad.id,
+              index: event.gamepad.index,
+            });
+          });
+          window.addEventListener("popstate", (event) => {
+            logCustom("popstate", { state: event.state });
+            history.pushState({ remoteDebug: true, index: Date.now() }, "", location.href);
+          });
+          document.addEventListener("visibilitychange", () => {
+            logCustom("visibilitychange", { visibilityState: document.visibilityState });
+          });
+        }
+
+        function pollGamepads() {
+          const gamepads = navigator.getGamepads?.() || [];
+          for (const gamepad of gamepads) {
+            if (!gamepad) continue;
+            const pressed = gamepad.buttons
+              .map((button, index) => button.pressed ? { index, value: Number(button.value.toFixed(3)) } : null)
+              .filter(Boolean);
+            const axes = gamepad.axes
+              .map((value, index) => Math.abs(value) > 0.25 ? { index, value: Number(value.toFixed(3)) } : null)
+              .filter(Boolean);
+            if (pressed.length || axes.length) {
+              logCustom("gamepadpoll", {
+                id: gamepad.id,
+                index: gamepad.index,
+                pressed,
+                axes,
+              });
+            }
+          }
+          window.setTimeout(pollGamepads, 250);
+        }
+
+        async function copyLog() {
+          const text = JSON.stringify(state.logs.map((entry) => entry.data), null, 2);
+          try {
+            await navigator.clipboard.writeText(text);
+            logCustom("debug-copy", { status: "copied", events: state.logs.length });
+          } catch (error) {
+            logCustom("debug-copy", { status: "failed", message: String(error) });
+          }
+        }
+
+        function clearLog() {
+          state.logs = [];
+          state.counts.total = 0;
+          state.counts.keyboard = 0;
+          state.counts.wheel = 0;
+          state.counts.pointer = 0;
+          render();
+        }
+
+        async function toggleWakeLock() {
+          if (!("wakeLock" in navigator)) {
+            logCustom("wake-lock", { status: "unsupported" });
+            return;
+          }
+
+          try {
+            if (state.wakeLock) {
+              await state.wakeLock.release();
+              state.wakeLock = null;
+              els.wakeButton.textContent = "Keep screen awake";
+              logCustom("wake-lock", { status: "released" });
+              return;
+            }
+
+            state.wakeLock = await navigator.wakeLock.request("screen");
+            els.wakeButton.textContent = "Release wake lock";
+            state.wakeLock.addEventListener("release", () => {
+              state.wakeLock = null;
+              els.wakeButton.textContent = "Keep screen awake";
+            });
+            logCustom("wake-lock", { status: "active" });
+          } catch (error) {
+            logCustom("wake-lock", { status: "failed", message: String(error) });
+          }
+        }
+
+        els.copyButton.addEventListener("click", copyLog);
+        els.clearButton.addEventListener("click", clearLog);
+        els.wakeButton.addEventListener("click", toggleWakeLock);
+        installListeners();
+        pollGamepads();
+        logCustom("debug-ready", {
+          userAgent: navigator.userAgent,
+          url: location.href,
+        });
+      })();
+    </script>
+  </body>
+</html>

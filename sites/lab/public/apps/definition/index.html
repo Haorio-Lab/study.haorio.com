@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>삑삑이 플래시카드</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="toolbar" aria-label="덱 설정">
+        <div class="brand">
+          <span class="brand-mark">B</span>
+          <div>
+            <h1>삑삑이 플래시카드</h1>
+            <p id="deckSummary">데이터를 불러오는 중</p>
+          </div>
+        </div>
+
+        <div class="control-grid">
+          <label class="field">
+            <span>범위</span>
+            <select id="deckSelect"></select>
+          </label>
+
+          <label class="field">
+            <span>출제 방식</span>
+            <select id="orderSelect">
+              <option value="sequential">순차</option>
+              <option value="random">랜덤</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>카드 보기</span>
+            <select id="cardVisibilitySelect">
+              <option value="unknown">모르는 카드만</option>
+              <option value="all">전체 카드</option>
+            </select>
+          </label>
+
+          <label class="field field-range">
+            <span>자동 넘김 <strong id="intervalLabel">30초</strong></span>
+            <input id="intervalInput" type="range" min="10" max="100" step="5" value="30" />
+          </label>
+        </div>
+
+        <div class="toggle-row" aria-label="보기 설정">
+          <button id="autoButton" class="toggle-button" type="button" aria-pressed="false">자동</button>
+          <button id="countdownButton" class="toggle-button is-on" type="button" aria-pressed="true">3초 카운트</button>
+          <button id="stickyDefinitionButton" class="toggle-button" type="button" aria-pressed="false">정의 항상</button>
+          <button id="stickyKeywordsButton" class="toggle-button" type="button" aria-pressed="false">키워드 항상</button>
+          <button id="sprintButton" class="toggle-button sprint-launch" type="button">Sprint 시작하기</button>
+        </div>
+
+        <div class="user-entry" hidden>
+          <div class="user-head">
+            <div>
+              <strong>학습 계정</strong>
+              <p id="userStatusText">계정 없이 전체 카드 보기</p>
+            </div>
+            <button id="userLogoutButton" class="toggle-button compact" type="button" hidden>로그아웃</button>
+          </div>
+
+          <form id="userCreateForm" class="login-form">
+            <label class="field">
+              <span>사용자 이름</span>
+              <input id="userNameInput" type="text" autocomplete="nickname" placeholder="예: Henry" />
+            </label>
+            <div class="account-actions">
+              <button class="toggle-button is-on" type="submit">계정 만들기</button>
+              <button id="accountHelpButton" class="help-button" type="button" aria-label="계정 만들기 도움말">?</button>
+            </div>
+            <p id="accountHelpPopup" class="help-popup" hidden>계정은 정답 관리용입니다. 사용자별로 아는 토픽과 모르는 토픽을 구분해 저장하고, 다음 학습 때 모르는 카드만 빠르게 볼 수 있습니다.</p>
+            <p id="userMessage" class="login-message" role="status"></p>
+          </form>
+
+          <div>
+            <p class="quick-title">빠른 로그인</p>
+            <div id="quickLoginList" class="quick-login-list"></div>
+          </div>
+        </div>
+
+      </section>
+
+      <section class="study-stage" aria-live="polite">
+        <section id="studyView" class="study-view">
+          <div class="status-line">
+            <span id="sheetBadge">-</span>
+            <span id="progressText">0 / 0</span>
+            <span id="timerText">수동</span>
+          </div>
+
+          <div class="nav-row nav-row-top">
+            <button id="prevButton" class="nav-button" type="button" aria-label="이전 카드">‹</button>
+            <button id="shuffleButton" class="nav-button secondary" type="button">다시 섞기</button>
+            <button id="nextButton" class="nav-button" type="button" aria-label="다음 카드">›</button>
+          </div>
+
+          <article class="flashcard">
+            <div class="question-block">
+            <p id="categoryText" class="category">-</p>
+            <h2 id="questionText">카드를 불러오는 중입니다.</h2>
+            <div class="known-row">
+              <button id="knownCardButton" class="toggle-button" type="button" aria-pressed="false">아는 카드로 체크</button>
+              <span id="knownProgressText">로그인하면 아는 카드가 저장됩니다.</span>
+            </div>
+          </div>
+
+            <div class="answer-grid">
+              <section class="answer-panel" id="definitionPanel">
+                <div class="panel-head">
+                  <h3>정의</h3>
+                  <button id="definitionButton" type="button">열기</button>
+                </div>
+                <p id="definitionText" class="answer-text"></p>
+              </section>
+
+              <section class="answer-panel" id="keywordsPanel">
+                <div class="panel-head">
+                  <h3>키워드</h3>
+                  <button id="keywordsButton" type="button">열기</button>
+                </div>
+                <p id="keywordsText" class="answer-text"></p>
+              </section>
+            </div>
+          </article>
+        </section>
+
+        <section id="sprintView" class="sprint-view" hidden>
+          <div class="status-line">
+            <span id="sprintScopeText">Sprint</span>
+            <span id="sprintProgressText">0 / 0</span>
+            <span id="sprintTimerText">수동</span>
+          </div>
+
+          <article id="sprintActivePanel" class="sprint-panel">
+            <div class="sprint-running-actions">
+              <button id="sprintShowResultButton" class="toggle-button is-on" type="button">결과 보기</button>
+              <button id="sprintStopButton" class="toggle-button" type="button">종료</button>
+            </div>
+            <div class="question-block sprint-question">
+              <p id="sprintCategoryText" class="category">-</p>
+              <h2 id="sprintQuestionText">스프린트를 준비 중입니다.</h2>
+            </div>
+          </article>
+
+          <article id="sprintResultPanel" class="sprint-result" hidden>
+            <div class="sprint-result-head">
+              <div>
+                <p class="category">Sprint 완료</p>
+                <h2>복습 목록</h2>
+              </div>
+              <div class="sprint-actions">
+                <button id="sprintRestartButton" class="toggle-button is-on" type="button">다시 시작</button>
+                <button id="sprintExitButton" class="toggle-button" type="button">종료</button>
+              </div>
+            </div>
+            <div id="sprintResultList" class="sprint-result-list"></div>
+          </article>
+        </section>
+
+        <section id="adminView" class="admin-view" hidden>
+          <div class="admin-header">
+            <div>
+              <p class="category">관리자</p>
+              <h2>카드 데이터</h2>
+            </div>
+            <button id="backToStudyButton" class="nav-button secondary compact" type="button">학습 화면</button>
+          </div>
+
+          <div class="admin-tools">
+            <label class="field">
+              <span>검색</span>
+              <input id="adminSearchInput" type="search" placeholder="문제, 정의, 키워드 검색" />
+            </label>
+            <label class="field">
+              <span>시트</span>
+              <select id="adminSheetFilter"></select>
+            </label>
+            <button id="resetEditsButton" class="toggle-button danger" type="button">수정 초기화</button>
+          </div>
+
+          <div class="admin-grid">
+            <div class="card-list" id="adminCardList" aria-label="전체 카드 목록"></div>
+
+            <form id="cardEditForm" class="edit-form">
+              <div class="edit-form-head">
+                <h3 id="editTitle">카드를 선택하세요</h3>
+                <p id="editMeta"></p>
+              </div>
+              <label class="field">
+                <span>출제구분</span>
+                <input id="editCategoryInput" type="text" />
+              </label>
+              <label class="field">
+                <span>문제</span>
+                <textarea id="editQuestionInput" rows="3"></textarea>
+              </label>
+              <label class="field">
+                <span>정의</span>
+                <textarea id="editDefinitionInput" rows="8"></textarea>
+              </label>
+              <label class="field">
+                <span>키워드</span>
+                <textarea id="editKeywordsInput" rows="5"></textarea>
+              </label>
+              <button class="toggle-button is-on" type="submit">저장</button>
+              <p id="editMessage" class="login-message" role="status"></p>
+            </form>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <dialog id="sprintDialog" class="sprint-dialog">
+      <form id="sprintForm" class="sprint-form" method="dialog">
+        <div class="sprint-dialog-head">
+          <div>
+            <p class="category">Random Sprint</p>
+            <h2>Sprint 설정</h2>
+          </div>
+          <button id="sprintCancelButton" class="dialog-close" type="button" aria-label="닫기">×</button>
+        </div>
+        <label class="field">
+          <span>토픽 갯수</span>
+          <input id="sprintCountInput" type="number" min="1" max="100" value="10" inputmode="numeric" />
+        </label>
+        <label class="field">
+          <span>토픽당 시간(초)</span>
+          <input id="sprintSecondsInput" type="number" min="5" max="600" value="30" inputmode="numeric" />
+        </label>
+        <section class="sprint-domain-field" aria-labelledby="sprintDomainTitle">
+          <div class="sprint-domain-head">
+            <span id="sprintDomainTitle">도메인</span>
+            <div class="sprint-domain-actions">
+              <button id="sprintAllDomainsButton" class="mini-button" type="button">전체</button>
+              <button id="sprintClearDomainsButton" class="mini-button" type="button">해제</button>
+            </div>
+          </div>
+          <div id="sprintDomainList" class="sprint-domain-list"></div>
+        </section>
+        <p id="sprintSetupMessage" class="login-message" role="status"></p>
+        <button id="sprintStartButton" class="toggle-button is-on" type="submit">Start</button>
+      </form>
+    </dialog>
+
+    <dialog id="sprintRestartDialog" class="sprint-dialog">
+      <div class="sprint-form">
+        <div class="sprint-dialog-head">
+          <div>
+            <p class="category">Sprint 다시 시작</p>
+            <h2>재시작 방식</h2>
+          </div>
+          <button id="sprintRestartCancelIconButton" class="dialog-close" type="button" aria-label="닫기">×</button>
+        </div>
+        <button id="sprintSameCardsButton" class="toggle-button is-on" type="button">방금 문제로 다시 시작</button>
+        <button id="sprintNewCardsButton" class="toggle-button" type="button">새로운 문제 선택</button>
+        <button id="sprintRestartCancelButton" class="toggle-button" type="button">취소</button>
+      </div>
+    </dialog>
+
+    <script src="./cards-data.js"></script>
+    <script src="../study-progress-client.js"></script>
+    <script src="../remote-input.js?v=touch-scroll-2"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
