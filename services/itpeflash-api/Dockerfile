@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY migrations ./migrations
 COPY scripts ./scripts
+COPY seed ./seed
 
 RUN addgroup --system app && adduser --system --ingroup app app \
     && chown -R app:app /app

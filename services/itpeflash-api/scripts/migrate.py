@@ -18,10 +18,9 @@ from scripts.importer import (
 
 
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = Path(__file__).resolve().parents[3]
 MIGRATIONS_DIR = SERVICE_ROOT / "migrations"
-DEFAULT_DEFINITION_PATH = REPO_ROOT / "sites/lab/public/apps/definition/cards-data.js"
-DEFAULT_JUMO_PATH = REPO_ROOT / "sites/lab/public/apps/jumo/data.js"
+DEFAULT_DEFINITION_PATH = SERVICE_ROOT / "seed/definition.js"
+DEFAULT_JUMO_PATH = SERVICE_ROOT / "seed/jumo.js"
 
 
 def parse_args() -> argparse.Namespace:

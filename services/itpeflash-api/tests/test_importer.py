@@ -7,9 +7,9 @@ from pathlib import Path
 from scripts.importer import DOMAINS, build_seed_cards
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-DEFINITION_PATH = REPO_ROOT / "sites/lab/public/apps/definition/cards-data.js"
-JUMO_PATH = REPO_ROOT / "sites/lab/public/apps/jumo/data.js"
+SERVICE_ROOT = Path(__file__).resolve().parents[1]
+DEFINITION_PATH = SERVICE_ROOT / "seed/definition.js"
+JUMO_PATH = SERVICE_ROOT / "seed/jumo.js"
 NOTE_KEYS = {
     "id",
     "title",

@@ -29,8 +29,10 @@ Docker 네트워크에 연결해야 합니다.
 
 ## 이미지 빌드
 
+이 README가 있는 디렉터리에서 실행합니다.
+
 ```bash
-docker build -t itpeflash-api:1.0 services/itpeflash-api
+docker build -t itpeflash-api:1.0 .
 ```
 
 ## 마이그레이션과 초기 적재
@@ -38,18 +40,18 @@ docker build -t itpeflash-api:1.0 services/itpeflash-api
 마이그레이션은 실행 전에 기존 테이블 목록을 출력합니다. `itpeflash_` 테이블만 만들며
 `DROP`, `DELETE`, `TRUNCATE`를 실행하지 않습니다.
 
-저장소 루트에서 아래 경로를 NAS 실제 경로와 Docker 네트워크 이름에 맞춰 실행합니다.
+정의 삑삑이와 주모 삑삑이 원본은 `seed/definition.js`, `seed/jumo.js`에 포함되어
+있으며 Docker 이미지에도 복사됩니다. NAS 관리자는 별도 저장소나 Obsidian 볼륨을
+마운트할 필요가 없습니다.
+
+Docker 네트워크 이름을 NAS 환경에 맞춰 실행합니다.
 
 ```bash
 docker run --rm \
   --network <POSTGRES_DOCKER_NETWORK> \
   --env-file /volume1/docker/itpeflash-api/.env \
-  -v "$PWD/sites/lab/public/apps/definition/cards-data.js:/seed/definition.js:ro" \
-  -v "$PWD/sites/lab/public/apps/jumo/data.js:/seed/jumo.js:ro" \
   itpeflash-api:1.0 \
-  python -m scripts.migrate \
-    --definition-path /seed/definition.js \
-    --jumo-path /seed/jumo.js
+  python -m scripts.migrate
 ```
 
 기본 대상은 Supabase 사용자 `jw_hoy@naver.com`과 사용자 ID
